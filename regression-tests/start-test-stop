@@ -1,5 +1,4 @@
-#!/bin/sh -ex
-
+#!/bin/bash -ex
 tosql ()
 {
 	make -C ../pdns/backends/bind zone2sql > /dev/null
@@ -79,14 +78,14 @@ __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
 				../pdns/pdnssec --config-dir=. --config-name=gmysql	secure-zone $zone 2>&1
-				../pdns/pdnssec --config-dir=. --config-name=gmysql	set-nsec3 $zone '1 1 1 abcd' 2>&1
-				../pdns/pdnssec --config-dir=. --config-name=gmysql	rectify-zone $zone 2>&1
+				#../pdns/pdnssec --config-dir=. --config-name=gmysql	set-nsec3 $zone '1 1 1 abcd' 2>&1
+				#../pdns/pdnssec --config-dir=. --config-name=gmysql	rectify-zone $zone 2>&1
 			done
 
 			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql --gmysql-dnssec \
 				--fancy-records --query-logging --send-root-referral --loglevel=9 \
-				--cache-ttl=0 --no-config \
+				--cache-ttl=0 --query-cache-ttl=0 --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
@@ -105,6 +104,8 @@ export context
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
+echo push enter
+read x
 nameserver=127.0.0.1 ./runtests
 echo push enter
 read x
