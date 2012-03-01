@@ -17,6 +17,7 @@ case $context in
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
 				--fancy-records --query-logging --send-root-referral --loglevel=9    \
 				--cache-ttl=0 --no-config &
+			skipreasons=nodnssec
 			;;
 		bind-gsqlite3)
 			./bind-gsqlite3-setup
@@ -49,8 +50,9 @@ case $context in
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
 				--gmysql-password="$GMYSQLPASS" &
+			skipreasons=nodnssec
 			;;
-		gmysql)
+		gmysql | gmysql-nsec3)
 			[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 			[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
 			[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
@@ -78,8 +80,11 @@ __EOF__
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
 				../pdns/pdnssec --config-dir=. --config-name=gmysql	secure-zone $zone 2>&1
-				#../pdns/pdnssec --config-dir=. --config-name=gmysql	set-nsec3 $zone '1 1 1 abcd' 2>&1
-				#../pdns/pdnssec --config-dir=. --config-name=gmysql	rectify-zone $zone 2>&1
+				if [ $context = gmysql-nsec3 ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
+				fi
 			done
 
 			../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./  \
@@ -90,6 +95,10 @@ __EOF__
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
 				--gmysql-password="$GMYSQLPASS" &
+			if [ $context = gmysql-nsec3 ]
+			then
+				subcontexts=nsec3
+			fi
 			;;			
 		*)
 			echo unknown context $context
@@ -101,6 +110,8 @@ esac
 		
 export port
 export context
+export extracontexts
+export skipreasons
 
 ## TODO: give pdns a few seconds to startup or fail, then check if it did not fail
 ## TODO: give sdig a timeout
