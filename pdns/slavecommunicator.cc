@@ -205,7 +205,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         di.backend->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, hashed, auth); // this should always be done
       }
     }
-        
+    di.backend->updateDNSSECPerTypeAuth(domain_id, "DS", 1);
     di.backend->commitTransaction();
     di.backend->setFresh(domain_id);
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;

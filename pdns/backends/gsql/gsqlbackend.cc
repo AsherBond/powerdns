@@ -287,6 +287,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_afterOrderQuery = getArg("get-order-after-query");
     d_lastOrderQuery = getArg("get-order-last-query");
     d_setOrderAuthQuery = getArg("set-order-and-auth-query");
+    d_setTypeAuthQuery = getArg("set-type-auth-query");
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");

@@ -136,6 +136,11 @@ public:
     return false;
   }
 
+  virtual bool updateDNSSECPerTypeAuth(uint32_t domain_id, const std::string& type, bool auth)
+  {
+    return false;
+  }
+
   // end DNSSEC
 
   //! returns true if master ip is master for domain name.

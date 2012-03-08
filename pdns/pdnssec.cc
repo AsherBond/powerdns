@@ -152,6 +152,7 @@ void rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
     }
   }
+  sd.db->updateDNSSECPerTypeAuth(sd.domain_id, "DS", 1);
   if(doTransaction)
     sd.db->commitTransaction();
 }

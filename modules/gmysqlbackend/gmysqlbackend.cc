@@ -92,7 +92,8 @@ public:
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > '%s' and auth=1 and domain_id=%d");
     declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and auth=1 and domain_id=%d order by 1 desc limit 1");
     declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername='%s',auth=%d where name='%s' and domain_id='%d'");
-    
+    declare(suffix,"set-type-auth-query", "DNSSEC set per-type auth query", "update records set auth=%d where type='%s' and domain_id='%d'");
+
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
     declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
