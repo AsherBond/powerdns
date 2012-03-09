@@ -858,14 +858,10 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
 
   recordstorage_t::const_iterator iter = bbd.d_records->lower_bound(domain);
 
-  if (iter == bbd.d_records->end() || (iter->qname) > domain)
-  {
-    before = boost::prior(iter)->qname;
-  }
-  else
-  {
-    before = qname;
-  }
+  while(iter == bbd.d_records->end() || (iter->qname) > domain || (!(iter->auth) && !(iter->qtype == QType::NS)))
+    iter--;
+
+  before=iter->qname;
 
   //cerr<<"Now upper bound"<<endl;
   iter = bbd.d_records->upper_bound(domain);
@@ -876,7 +872,9 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::str
     after.clear(); // this does the right thing (i.e. point to apex, which is sure to have auth records)
   } else {
     //cerr<<"\tFound: '"<<(iter->qname)<<"' (nsec3hash='"<<(iter->nsec3hash)<<"')"<<endl;
-    while(!(iter->auth))
+    // this iteration is theoretically unnecessary - glue always sorts right behind a delegation
+    // so we will never get here. But let's do it anyway.
+    while(!(iter->auth) && !(iter->qtype == QType::NS))
     {
       iter++;
       if(iter == bbd.d_records->end())
