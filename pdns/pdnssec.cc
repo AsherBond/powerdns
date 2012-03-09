@@ -191,7 +191,7 @@ int checkZone(DNSSECKeeper& dk, const std::string& zone)
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";  
       
-    if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A)
+    if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
       cout<<"Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
