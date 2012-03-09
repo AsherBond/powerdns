@@ -40,10 +40,10 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after, bool optout);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
   virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
-  virtual bool updateDNSSECPerTypeAuth(uint32_t domain_id, const std::string& type, bool auth);
+  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type);
 
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
@@ -92,7 +92,7 @@ private:
   string d_afterOrderQuery;
   string d_lastOrderQuery;
   string d_setOrderAuthQuery;
-  string d_setTypeAuthQuery;
+  string d_nullifyOrderNameAndAuthQuery;
 
   string d_AddDomainKeyQuery;
   string d_ListDomainKeysQuery;
