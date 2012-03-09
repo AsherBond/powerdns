@@ -13,6 +13,13 @@ touch passed_tests failed_tests skipped_tests
 
 for a in $(find . -type d | grep -v ^.$ | sed s:^./:: | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
 do
+	if [ ! -x $a/command ] || [ ! -e $a/description ]
+	then
+		echo "Skipping $a because we do not have a command or description!"
+                echo $a >> skipped_tests
+                skipped=$[$skipped+1]  
+		continue
+	fi
 	testname=$a
 	export testname
 	echo  "$a: "
