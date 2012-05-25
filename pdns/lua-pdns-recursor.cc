@@ -40,6 +40,10 @@ bool PowerDNSLua::axfrfilter(const ComboAddress& remote, const string& zone, con
   return false;
 }
 
+bool PowerDNSLua::prequery(DNSPacket *p)
+{
+  return false;
+}
 
 PowerDNSLua::~PowerDNSLua()
 {
@@ -79,7 +83,33 @@ bool netmaskMatchTable(lua_State* lua, const std::string& ip)
   return false;
 }
 
+static bool getFromTable(lua_State *lua, const std::string &key, std::string& value)
+{
+  lua_pushstring(lua, key.c_str()); // 4 is now '1'
+  lua_gettable(lua, -2);  // replace by the first entry of our table we hope
 
+  bool ret=false;
+  if(!lua_isnil(lua, -1)) {
+    value = lua_tostring(lua, -1);
+    ret=true;
+  }
+  lua_pop(lua, 1);
+  return ret;
+}
+
+static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value)
+{
+  lua_pushstring(lua, key.c_str()); // 4 is now '1'
+  lua_gettable(lua, -2);  // replace by the first entry of our table we hope
+
+  bool ret=false;
+  if(!lua_isnil(lua, -1)) {
+    value = (uint32_t)lua_tonumber(lua, -1);
+    ret=true;
+  }
+  lua_pop(lua, 1);
+  return ret;
+}
 
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records)
 {  
@@ -110,6 +140,52 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     lua_setfield(lua, -2, "place");
     
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
+  }
+}
+
+static void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret)
+{
+  /* get the result */
+  DNSResourceRecord rr;
+  rr.qname = query;
+  rr.d_place = DNSResourceRecord::ANSWER;
+  rr.ttl = 3600;
+
+  cerr<<"Lua stacksize "<<lua_gettop(lua)<<endl;
+#ifndef LUA_VERSION_NUM
+  int tableLen = luaL_getn(lua, 2);
+#else
+  int tableLen = lua_objlen(lua, 2);
+#endif
+  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
+
+  for(int n=1; n < tableLen + 1; ++n) {
+    lua_pushnumber(lua, n);
+    lua_gettable(lua, 2);
+
+    uint32_t tmpnum=0;
+    if(!getFromTable(lua, "qtype", tmpnum)) 
+      rr.qtype=QType::A;
+    else
+      rr.qtype=tmpnum;
+
+    getFromTable(lua, "content", rr.content);
+    if(!getFromTable(lua, "ttl", rr.ttl))
+      rr.ttl=3600;
+
+    if(!getFromTable(lua, "qname", rr.qname))
+      rr.qname = query;
+
+    if(!getFromTable(lua, "place", tmpnum))
+      rr.d_place = DNSResourceRecord::ANSWER;
+    else
+      rr.d_place = (DNSResourceRecord::Place) tmpnum;
+
+    /* removes 'value'; keeps 'key' for next iteration */
+    lua_pop(lua, 1); // table
+
+    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
+    ret.push_back(rr);
   }
 }
 
@@ -190,7 +266,6 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
 }
 
 
-
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = lua_open();
@@ -232,6 +307,8 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   
   lua_pushlightuserdata(d_lua, (void*)this); 
   lua_setfield(d_lua, LUA_REGISTRYINDEX, "__PowerDNSLua");
+
+  registerLuaDNSPacket();
 }
 
 bool PowerDNSLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
@@ -336,31 +413,13 @@ bool PowerDNSLua::postresolve(const ComboAddress& remote, const ComboAddress& lo
 
 bool PowerDNSLua::getFromTable(const std::string& key, std::string& value)
 {
-  lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
-  lua_gettable(d_lua, -2);  // replace by the first entry of our table we hope
-
-  bool ret=false;
-  if(!lua_isnil(d_lua, -1)) {
-    value = lua_tostring(d_lua, -1);
-    ret=true;
-  }
-  lua_pop(d_lua, 1);
-  return ret;
+  return ::getFromTable(d_lua, key, value);
 }
 
 
 bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
 {
-  lua_pushstring(d_lua, key.c_str()); // 4 is now '1'
-  lua_gettable(d_lua, -2);  // replace by the first entry of our table we hope
-
-  bool ret=false;
-  if(!lua_isnil(d_lua, -1)) {
-    value = (uint32_t)lua_tonumber(d_lua, -1);
-    ret=true;
-  }
-  lua_pop(d_lua, 1);
-  return ret;
+  return ::getFromTable(d_lua, key, value);
 }
 
 bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
@@ -421,56 +480,115 @@ bool PowerDNSLua::passthrough(const string& func, const ComboAddress& remote, co
   }
   res=newres;
 
-  /* get the result */
-  DNSResourceRecord rr;
-  rr.qname = query;
-  rr.d_place = DNSResourceRecord::ANSWER;
-  rr.ttl = 3600;
-
   ret.clear();
 
   /*           1       2   3   4   */
   /* stack:  boolean table key row */
 
-#ifndef LUA_VERSION_NUM
-  int tableLen = luaL_getn(d_lua, 2);
-#else
-  int tableLen = lua_objlen(d_lua, 2);
-#endif
-  // cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
-
-  for(int n=1; n < tableLen + 1; ++n) {
-    lua_pushnumber(d_lua, n);
-    lua_gettable(d_lua, 2);
-
-    uint32_t tmpnum=0;
-    if(!getFromTable("qtype", tmpnum)) 
-      rr.qtype=QType::A;
-    else
-      rr.qtype=tmpnum;
-
-    getFromTable("content", rr.content);
-    if(!getFromTable("ttl", rr.ttl))
-      rr.ttl=3600;
-
-    if(!getFromTable("qname", rr.qname))
-      rr.qname = query;
-
-    if(!getFromTable("place", tmpnum))
-      rr.d_place = DNSResourceRecord::ANSWER;
-    else
-      rr.d_place = (DNSResourceRecord::Place) tmpnum;
-
-    /* removes 'value'; keeps 'key' for next iteration */
-    lua_pop(d_lua, 1); // table
-
-    //    cerr<<"Adding content '"<<rr.content<<"' with place "<<(int)rr.d_place<<" \n";
-    ret.push_back(rr);
-  }
+  popResourceRecordsTable(d_lua, query, ret);
 
   lua_pop(d_lua, 3);
 
   return true;
+}
+
+struct LuaDNSPacket
+{
+  DNSPacket *d_p;
+};
+
+static DNSPacket* ldp_checkDNSPacket(lua_State *L) {
+  void *ud = luaL_checkudata(L, 1, "LuaDNSPacket");
+  luaL_argcheck(L, ud != NULL, 1, "`LuaDNSPacket' expected");
+  return ((LuaDNSPacket *)ud)->d_p;
+}
+
+static int ldp_setRcode(lua_State *L) {
+  DNSPacket *p=ldp_checkDNSPacket(L);
+  int rcode = luaL_checkint(L, 2);
+  p->setRcode(rcode);
+  return 0;
+}
+
+static int ldp_getQuestion(lua_State *L) {
+  DNSPacket *p=ldp_checkDNSPacket(L);
+  lua_pushstring(L, p->qdomain.c_str());
+  lua_pushnumber(L, p->qtype.getCode());
+  return 2;
+}
+
+static int ldp_addRecords(lua_State *L) {
+  DNSPacket *p=ldp_checkDNSPacket(L);
+  vector<DNSResourceRecord> rrs;
+  popResourceRecordsTable(L, "BOGUS", rrs);
+  BOOST_FOREACH(DNSResourceRecord rr, rrs) {
+    p->addRecord(rr);
+  }
+  return 0;
+}
+
+static const struct luaL_reg ldp_methods [] = {
+      {"setRcode", ldp_setRcode},
+      {"getQuestion", ldp_getQuestion},
+      {"addRecords", ldp_addRecords},
+      {NULL, NULL}
+    };
+
+void PowerDNSLua::registerLuaDNSPacket(void) {
+
+  luaL_newmetatable(d_lua, "LuaDNSPacket");
+
+  lua_pushstring(d_lua, "__index");
+  lua_pushvalue(d_lua, -2);  /* pushes the metatable */
+  lua_settable(d_lua, -3);  /* metatable.__index = metatable */
+
+  luaL_openlib(d_lua, NULL, ldp_methods, 0);
+
+  lua_pop(d_lua, 1);
+}
+
+DNSPacket* PowerDNSLua::prequery(DNSPacket *p)
+{
+  lua_getglobal(d_lua,"prequery");
+  if(!lua_isfunction(d_lua, -1)) {
+    cerr<<"No such function 'prequery'\n";
+    lua_pop(d_lua, 1);
+    return 0;
+  }
+  
+  DNSPacket *r=0;
+  // allocate a fresh packet and prefill the question
+  r=p->replyPacket();
+
+  // wrap it
+  LuaDNSPacket* lua_dp = (LuaDNSPacket *)lua_newuserdata(d_lua, sizeof(LuaDNSPacket));
+  lua_dp->d_p=r;
+  
+  // make it of the right type
+  luaL_getmetatable(d_lua, "LuaDNSPacket");
+  lua_setmetatable(d_lua, -2);
+
+  if(lua_pcall(d_lua,  1, 1, 0)) { // error 
+    string error=string("lua error in prequery: ")+lua_tostring(d_lua, -1);
+    theL()<<Logger::Error<<error<<endl;
+
+    lua_pop(d_lua, 1);
+    throw runtime_error(error);
+    return 0;
+  }
+  bool res=lua_toboolean(d_lua, 1);
+  lua_pop(d_lua, 1);
+  if(res) {
+    // prequery created our response, use it
+    theL()<<Logger::Info<<"overriding query from lua prequery result"<<endl;
+    return r;
+  }
+  else
+  {
+    // prequery wanted nothing to do with this question
+    delete r;
+    return 0;
+  }
 }
 
 PowerDNSLua::~PowerDNSLua()

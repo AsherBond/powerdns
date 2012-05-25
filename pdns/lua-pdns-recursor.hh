@@ -2,6 +2,7 @@
 #define PDNS_LUA_PDNS_RECURSOR_HH
 #include "dns.hh"
 #include "iputils.hh"
+#include "dnspacket.hh"
 
 struct lua_State;
 
@@ -16,6 +17,7 @@ public:
   bool axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out);
   bool nodata(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
   bool postresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  DNSPacket* prequery(DNSPacket *p);
   ComboAddress getLocal()
   {
     return d_local;
@@ -28,6 +30,7 @@ public:
 
 private:
   lua_State* d_lua;
+  void registerLuaDNSPacket(void);
   bool passthrough(const string& func, const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable);
   bool getFromTable(const std::string& key, std::string& value);
   bool getFromTable(const std::string& key, uint32_t& value);
