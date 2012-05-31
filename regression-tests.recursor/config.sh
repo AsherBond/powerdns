@@ -21,14 +21,14 @@ rm -rf configs/
 mkdir configs
 cd configs
 
-cat > run-auth << EOF
+cat > run-auth <<EOF
 #!/bin/sh
 $AUTHRUN
 EOF
 chmod +x run-auth
 
 mkdir recursor-service
-cat > recursor-service/run << EOF
+cat > recursor-service/run <<EOF
 #!/bin/sh
 $RECRUN
 EOF
@@ -63,7 +63,7 @@ cp $PREFIX.10/example.net.zone $PREFIX.11/
 
 ### plain delegated zone, no surprises
 mkdir $PREFIX.12
-cat > $PREFIX.12/arthur.example.net.zone << EOF
+cat > $PREFIX.12/arthur.example.net.zone <<EOF
 arthur.example.net.      3600 IN SOA $SOA
 arthur.example.net.      3600 IN NS  ns.arthur.example.net.
 arthur.example.net.      3600 IN NS  ns2.arthur.example.net.
@@ -80,7 +80,7 @@ cp $PREFIX.12/arthur.example.net.zone $PREFIX.13
 
 ### zone with various CNAMEs, valid packets
 mkdir $PREFIX.14
-cat > $PREFIX.14/prefect.example.net.zone << EOF
+cat > $PREFIX.14/prefect.example.net.zone <<EOF
 prefect.example.net.           3600 IN SOA   $SOA
 prefect.example.net.           3600 IN NS    ns.prefect.example.net.
 ns.prefect.example.net.        3600 IN A     $PREFIX.14
@@ -96,7 +96,7 @@ EOF
 
 ### zone with valid in-zone CNAME, invalid NXDOMAIN in response
 mkdir $PREFIX.15
-cat > $PREFIX.15/marvin.example.net.zone << EOF
+cat > $PREFIX.15/marvin.example.net.zone <<EOF
 marvin.example.net.          3600    IN  SOA $SOA
 marvin.example.net.          3600    IN  NS  ns.marvin.example.net.
 ns.marvin.example.net.   3600 IN A   $PREFIX.15
@@ -104,7 +104,7 @@ www.marvin.example.net.      3600    IN  CNAME   android.marvin.example.net.
 android.marvin.example.net.  3600    IN  A   192.0.2.5
 EOF
 
-cat > $PREFIX.15/prequery.lua << EOF
+cat > $PREFIX.15/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
     if qtype == pdns.A and qname == "www.marvin.example.net"
@@ -122,14 +122,14 @@ EOF
 
 ### zone with working cross-zone CNAME, invalid NXDOMAIN in response
 mkdir $PREFIX.16
-cat > $PREFIX.16/trillian.example.net.zone << EOF
+cat > $PREFIX.16/trillian.example.net.zone <<EOF
 trillian.example.net.         3600 IN SOA $SOA
 trillian.example.net.         3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net.      3600 IN A     $PREFIX.16
 www.trillian.example.net.     3600 IN CNAME www2.arthur.example.net.
 EOF
 
-cat > $PREFIX.16/prequery.lua << EOF
+cat > $PREFIX.16/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
     if qtype == pdns.A and qname == "www.trillian.example.net"
@@ -148,7 +148,7 @@ EOF
 
 for dir in $PREFIX.*
 do
-    cat > $dir/pdns.conf << EOF
+    cat > $dir/pdns.conf <<EOF
 launch=bind
 daemon=no
 local-address=$dir
@@ -157,14 +157,14 @@ no-shuffle
 socket-dir=.
 EOF
     
-    cat > $dir/named.conf << EOF
+    cat > $dir/named.conf <<EOF
 options {
     directory "./";
 };
 EOF
     for zone in $(ls $dir | grep '\.zone$' | sed 's/\.zone$//') 
     do
-        cat >> $dir/named.conf << EOF
+        cat >> $dir/named.conf <<EOF
 zone "$zone"{
     type master;
     file "./$zone.zone";
