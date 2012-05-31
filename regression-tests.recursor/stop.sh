@@ -12,7 +12,9 @@ fi
 
 cd configs
 
-for dir in $PREFIX.*
+for dir in $PREFIX.* recursor-service
 do
-	svc -dx $dir
+	svc -d $dir
+	svc -k $dir
+	svc -x $dir
 done

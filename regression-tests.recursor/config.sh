@@ -16,17 +16,23 @@ then
     exit 1
 fi
 
-cat > run-auth << EOF
-#!/bin/sh
-touch down
-$AUTHRUN
-EOF
-chmod +x run-auth
-
 
 rm -rf configs/
 mkdir configs
 cd configs
+
+cat > run-auth << EOF
+#!/bin/sh
+$AUTHRUN
+EOF
+chmod +x run-auth
+
+mkdir recursor-service
+cat > recursor-service/run << EOF
+#!/bin/sh
+$RECRUN
+EOF
+chmod +x recursor-service/run
 
 SOA="ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300"
 
@@ -165,6 +171,6 @@ zone "$zone"{
 };
 EOF
     done
-    ln -s ../../run-auth $dir/run
+    ln -s ../run-auth $dir/run
 done
 

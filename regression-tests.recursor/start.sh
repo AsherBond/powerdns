@@ -12,7 +12,7 @@ fi
 
 cd configs
 
-for dir in $PREFIX.*
+for dir in $PREFIX.* recursor-service
 do
 	supervise $dir &
 done
