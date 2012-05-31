@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig www-d.prefect.example.net a
