@@ -54,7 +54,7 @@ prefect.example.net.     3600 IN NS  ns.prefect.example.net.
 ns.prefect.example.net.  3600 IN A   $PREFIX.14
 marvin.example.net.      3600 IN NS  ns.prefect.example.net.
 ns.marvin.example.net.   3600 IN A   $PREFIX.15
-trillian.example.net.    3600 IN NS  ns.prefect.example.net.
+trillian.example.net.    3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net. 3600 IN A   $PREFIX.16
 EOF
 
