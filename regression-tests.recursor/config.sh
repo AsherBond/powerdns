@@ -52,7 +52,7 @@ ns.arthur.example.net.   3600 IN A   $PREFIX.12
 ns2.arthur.example.net.  3600 IN A   $PREFIX.13
 prefect.example.net.     3600 IN NS  ns.prefect.example.net.
 ns.prefect.example.net.  3600 IN A   $PREFIX.14
-marvin.example.net.      3600 IN NS  ns.prefect.example.net.
+marvin.example.net.      3600 IN NS  ns.marvin.example.net.
 ns.marvin.example.net.   3600 IN A   $PREFIX.15
 trillian.example.net.    3600 IN NS  ns.trillian.example.net.
 ns.trillian.example.net. 3600 IN A   $PREFIX.16
@@ -156,6 +156,11 @@ bind-config=named.conf
 no-shuffle
 socket-dir=.
 EOF
+
+    if [ -e $dir/prequery.lua ]
+    then
+        echo 'lua-prequery-script=prequery.lua' >> $dir/pdns.conf
+    fi
     
     cat > $dir/named.conf <<EOF
 options {
