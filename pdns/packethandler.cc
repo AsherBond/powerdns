@@ -65,7 +65,7 @@ PacketHandler::PacketHandler():B(s_programname)
   }
   else
   {
-    d_pdl = new PowerDNSLua(fname);
+    d_pdl = new AuthLua(fname);
   }
 
 }
