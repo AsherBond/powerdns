@@ -2,7 +2,6 @@
 #define PDNS_LUA_PDNS_HH
 #include "dns.hh"
 #include "iputils.hh"
-#include "dnspacket.hh"
 
 struct lua_State;
 

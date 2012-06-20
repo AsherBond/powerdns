@@ -5,6 +5,12 @@ int directResolve(const std::string& qname, const QType& qtype, int qclass, vect
 
 #if !defined(PDNS_ENABLE_LUA)
 
+RecursorLua::RecursorLua(const std::string &fname)
+  : PowerDNSLua(fname)
+{
+  // empty
+}
+
 bool RecursorLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
@@ -49,6 +55,7 @@ extern "C" {
 RecursorLua::RecursorLua(const std::string &fname)
   : PowerDNSLua(fname)
 {
+  // empty
 }
 
 int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)

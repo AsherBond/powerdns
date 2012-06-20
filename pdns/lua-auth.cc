@@ -2,6 +2,12 @@
 
 #if !defined(PDNS_ENABLE_LUA)
 
+AuthLua::AuthLua(const std::string &fname)
+  : PowerDNSLua(fname)
+{
+  // empty
+}
+
 bool AuthLua::prequery(DNSPacket *p)
 {
   return false;
